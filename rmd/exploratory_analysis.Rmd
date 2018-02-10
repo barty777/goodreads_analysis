@@ -1,0 +1,25 @@
+---
+title: "Exploratory Analysis"
+author: "Bartol Freškura"
+date: "February 10, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = '../')
+source('../scripts/data_preparation.R')
+```
+
+```{r, message=F}
+# Loading packages
+library(tidyverse)
+library(VIM)
+library(magrittr)
+```
+
+```{r, message=F}
+# Load data from an external script
+load_data()
+```
+

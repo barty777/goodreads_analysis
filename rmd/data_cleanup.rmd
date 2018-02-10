@@ -12,7 +12,6 @@ knitr::opts_knit$set(root.dir = '../')
 
 ```{r, message=F}
 # Loading packages
-library(ggplot2)
 library(tidyverse)
 library(VIM)
 library(magrittr)
