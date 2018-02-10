@@ -1,0 +1,126 @@
+---
+title: "Data Cleanup"
+author: "Bartol Freškura"
+date: "February 10, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = '../')
+```
+
+```{r, message=F}
+# Loading packages
+library(ggplot2)
+library(tidyverse)
+library(VIM)
+library(magrittr)
+```
+
+## Ratings
+
+```{r}
+ratings <- read.csv(file="data/goodbooks-10k/ratings.csv", stringsAsFactors = F,
+                    colClasses = c("integer", "integer", "factor"))
+```
+
+```{r}
+head(ratings)
+str(ratings)
+```
+```{r}
+# Check of missing data
+sum(complete.cases(ratings)) == nrow(ratings)
+```
+There is no missing data!
+
+```{r}
+# Check for duplicate ratings
+sum(duplicated(ratings[, 1:2])) == 0
+```
+No user has rated the same book more than once.
+
+## Books
+
+```{r}
+books <- read.csv(file="data/goodbooks-10k/books.csv", stringsAsFactors = F, na.strings = "")
+```
+
+```{r}
+head(books)
+str(books)
+```
+
+
+```{r, fig.height=7, fig.width=10}
+# Check for missing data
+nrow(books) - sum(complete.cases(books))
+aggr(books, prop=FALSE, numbers=TRUE)
+lapply(books, function(x){sum(is.na(x))}) %>% as.data.frame()
+```
+There are 2140 rows with at least one missing column. Most of the missing values come from the 
+*language_code* followed by the *isbn*, *isb13*, and *original_title*. Fortunetaly, all the 
+variables which have missing data are either not crucial/interesting for the analysis or
+don't have many missing values which would make them totally unuseful
+(*original_publication_year* with 21 missing values).
+
+
+```{r}
+# Convert columns to more appropriate types
+books$language_code = as.factor(books$language_code)
+```
+
+## Tags
+```{r}
+tags <- read.csv(file="data/goodbooks-10k/tags.csv", stringsAsFactors = F)
+```
+
+```{r}
+head(tags)
+str(tags)
+```
+
+```{r}
+# Check of missing data
+sum(complete.cases(tags)) == nrow(tags)
+```
+No missing data.
+
+## Book Tags
+
+```{r}
+book_tags <- read.csv(file="data/goodbooks-10k/book_tags.csv", stringsAsFactors = F)
+```
+
+```{r}
+head(book_tags)
+str(book_tags)
+```
+```{r}
+# Check of missing data
+sum(complete.cases(book_tags)) == nrow(book_tags)
+```
+No missing data.
+
+
+## To Read
+```{r}
+to_read <- read.csv(file="data/goodbooks-10k/to_read.csv", stringsAsFactors = F)
+```
+
+```{r}
+head(to_read)
+str(to_read)
+```
+```{r}
+# Check of missing data
+sum(complete.cases(to_read)) == nrow(to_read)
+```
+No missing data.
+
+```{r}
+# Check for duplicate ratings
+sum(duplicated(to_read[, 1:2])) == 0
+```
+No duplicates are present.
