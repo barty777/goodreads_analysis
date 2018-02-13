@@ -35,3 +35,4 @@ vignettes/*.pdf
 data/
 rmd/*.pdf
 rmd/*.html
+.Rproj.user
