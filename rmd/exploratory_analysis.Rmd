@@ -266,3 +266,88 @@ represents the weight given to the average rating variable.
 
 ## Tags analysis
 
+```{r}
+tags_grouped <- inner_join(book_tags, tags, by=c('tag_id'='tag_id')) %>% group_by(tag_name, tag_id) %>%
+    summarise(count=sum(count)) %>% arrange(desc(count))
+
+head(tags_grouped, n = 200)
+
+```
+
+
+```{r}
+ggplot(head(tags_grouped, n=50), aes(x=reorder(tag_name, -count), y=count)) +
+    geom_bar(stat = "identity") + labs(x="Tag name", y="Count (log10)", title="50 most popular tags") + 
+    theme(axis.text.x = element_text(angle = 90)) + 
+    scale_y_log10()
+```
+Grouping tags by the tag count gives us a quite complex result to analyze. *to-read* and
+*currently-reading* are the default categories that Goodreads offer so it was expected to find
+them at the top. I was expecting that the tags popularity will perfectly correspond to book genres but
+that is not the case. Tags like *my-books*, *to-buy*, or *library* make it much harder to
+filter and analyze just the book genres so I will split the analysis into two parts. The first
+part will consider only book genres and the second part will pick non-genre tags that seem interesting.
+
+One more issue are the duplicate tags, e.g. *ya* and *young-adult*. If there are such tags, I 
+will consider only the most popular one. I chose this approach because the grouping can become
+burdensome as some of the duplicates can appear very far down the popularity list and will
+take a lot of time to properly group them.
+
+### Book genres analysis
+As there are too many genres to make a complete analysis, I will only focus on the most
+popular and the most interesting (in my opinion :) ) ones. 
+
+```{r}
+# Pick genre IDs
+pop_ids <- c(11305, 33114, 7457, 26138, 20939, 21689, 26837, 22973, 14821, 6953, 13561, 30358,
+             1691, 14552, 15048, 8517, 19733, 4605, 19052, 23471, 26816, 5951,
+             32130, 25647, 27095, 23931)
+
+filter(tags_grouped, tag_id %in% pop_ids)
+```
+
+```{r}
+popular_genres <- filter(book_tags, tag_id %in% pop_ids) %>% inner_join(books, by=c('goodreads_book_id' = 'goodreads_book_id'))
+popular_genres <- inner_join(popular_genres, tags)
+popular_genres <- mutate(popular_genres, score=(c(scale(average_rating)) +
+                                                    c(scale(work_ratings_count))))
+head(popular_genres)
+```
+
+```{r, fig.width=10, fig.height=15}
+p1 <- ggplot(popular_genres, aes(x=tag_name, y=average_rating)) +
+    geom_boxplot(outlier.alpha = 0.3) + labs(x="Genre", y="Average rating") + 
+    theme(axis.text.x = element_text(angle = 45))
+
+p2 <- ggplot(popular_genres, aes(x=tag_name, y=work_ratings_count)) +
+    geom_boxplot(outlier.alpha = 0.3) + labs(x="Genre", y="Number of ratings (log10)") + 
+    theme(axis.text.x = element_text(angle = 45)) +
+    scale_y_log10()
+
+p3 <- ggplot(popular_genres, aes(x=tag_name, y=work_text_reviews_count)) +
+    geom_boxplot(outlier.alpha = 0.3) + labs(x="Genre", y="Number of text ratings (log10)") + 
+    theme(axis.text.x = element_text(angle = 45))  + scale_y_log10()
+    
+grid.arrange(p1, p2, p3, nrow=3)
+```
+* Ratings have more negative outliers
+* manga and graphic novels higher scores but less ratings
+* Ratings have more positive outliers (no negative ones)
+* Textual reviews have an even number of positive/negative outliers
+
+```{r, fig.width=13}
+
+# TODO Book must have a category score which will indicate how close the book is to the
+# category. E.g. Harry potter can't have a high score in the history genre.
+
+top_popular_genres <- filter(popular_genres, c(scale(count)) > -1) %>%
+    group_by(tag_name) %>% top_n(n=15, wt=score)
+
+ggplot(top_popular_genres , aes(x=reorder(title, -score), y=score, fill=tag_name)) +
+    geom_bar(stat = "identity") + labs(x="Title", y="Score") +
+    theme(axis.text.x = element_text(size=0)) 
+```
+
+
+### Other tags analysis
+
