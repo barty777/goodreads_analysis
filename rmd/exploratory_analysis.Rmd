@@ -184,3 +184,85 @@ glimpse(tags)
 head(to_read)
 glimpse(to_read)
 ```
+
+# In-depth analysis
+
+## What are the top 10 books by the number of text reviews, number of ratings, and the average rating
+
+```{r, fig.width = 10}
+n <- 10
+top_10_text_review <- arrange(books, desc(work_text_reviews_count)) %>% head(n=n)
+top_10_ratings <- arrange(books, desc(work_ratings_count)) %>% head(n=n)
+top_10_avg_rating <- arrange(books, desc(average_rating)) %>% head(n=n)
+
+ggplot(top_10_text_review, aes(x=reorder(title, -work_text_reviews_count), y=work_text_reviews_count, fill=title)) +
+    geom_bar(stat = "identity") + labs(x="Title", y="Text Review Count") +
+    theme(axis.text.x = element_text(size=0))
+
+ggplot(top_10_ratings, aes(x=reorder(title, -ratings_count), y=ratings_count, fill=title)) +
+    geom_bar(stat = "identity") + labs(x="Title", y="Ratings Count") +
+    theme(axis.text.x = element_text(size=0))
+
+# TODO graph is empty if the ylim is set to a smaller interval
+ggplot(top_10_avg_rating, aes(x=reorder(title, -average_rating), y=average_rating, fill=title)) +
+    geom_bar(stat = "identity") + labs(x="Title", y="Average rating") +
+    theme(axis.text.x = element_text(size=0)) + ylim(0, 5)
+```
+It is more interesting to see which book come up top if we take a score which takes both
+the number of ratings and the 
+
+## Who are the best authors?
+```{r, fig.width=10}
+# Split authors so ever author is in one observation
+by_author <- books %>% mutate(authors = strsplit(authors, ",")) %>% unnest(authors)
+
+by_author <- group_by(by_author, authors) %>% summarise(avg_rating=mean(average_rating),
+                                                    ratings_count=sum(ratings_count)) 
+
+ggplot(top_n(by_author,n = 10, ratings_count), aes(x=reorder(authors, -ratings_count),
+                                                    y=ratings_count, fill=authors)) +
+    geom_bar(stat = "identity") + labs(x="Authors", y="Ratings Count") +
+    theme(axis.text.x = element_text(size=0))
+
+ggplot(top_n(by_author,n = 10, avg_rating), aes(x=reorder(authors, -avg_rating),
+                                                    y=avg_rating, fill=authors)) +
+    geom_bar(stat = "identity") + labs(x="Authors", y="Average rating") +
+    theme(axis.text.x = element_text(size=0)) 
+
+```
+
+## Ratings count - Average ratings model
+
+```{r, fig.width=10, fig.height=8}
+alpha_even <- 0.5
+alpha_ratings <- 0.75
+alpha_count <- 1 - alpha_ratings
+
+even <- transmute(books, title,  score = alpha_even*c(scale(average_rating)) +
+                                     (1-alpha_even)*c(scale(work_ratings_count))) %>% top_n(n=10)
+
+ratings_preffered <- transmute(books, title,  score = alpha_ratings*c(scale(average_rating)) +
+                                     (1-alpha_ratings)*c(scale(work_ratings_count))) %>% top_n(n=10)
+
+count_preffered <- transmute(books, title,  score = alpha_count*c(scale(average_rating)) +
+                                     (1-alpha_count)*c(scale(work_ratings_count))) %>% top_n(n=10)
+
+p1 <- ggplot(even, aes(x=reorder(title, -score), y=score, fill=title)) +
+    geom_bar(stat = "identity") + labs(x="Title", y="Score", title="Alpha = 0.5") +
+    theme(axis.text.x = element_text(size=0))
+p2 <- ggplot(ratings_preffered, aes(x=reorder(title, -score), y=score, fill=title)) +
+    geom_bar(stat = "identity") + labs(x="Title", y="Score", title="Alpha = 0.75") +
+    theme(axis.text.x = element_text(size=0))
+p3 <- ggplot(count_preffered, aes(x=reorder(title, -score), y=score, fill=title)) +
+    geom_bar(stat = "identity") + labs(x="Title", y="Score", title="Alpha = 0.25") +
+    theme(axis.text.x = element_text(size=0))
+
+grid.arrange(p1, p2, p3, ncol=1, nrow=3)
+```
+
+Three graphs above show us different rankings when we apply a simple model which takes
+standardised average ratings and rating counts to calculate the book score. Alpha parameter
+represents the weight given to the average rating variable.
+
+## Tags analysis
+
