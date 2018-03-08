@@ -301,7 +301,7 @@ popular and the most interesting (in my opinion :) ) ones.
 # Pick genre IDs
 pop_ids <- c(11305, 33114, 7457, 26138, 20939, 21689, 26837, 22973, 14821, 6953, 13561, 30358,
              1691, 14552, 15048, 8517, 19733, 4605, 19052, 23471, 26816, 5951,
-             32130, 25647, 27095, 23931)
+             32130, 25647, 27095, 23931, 24526)
 
 filter(tags_grouped, tag_id %in% pop_ids)
 ```
@@ -309,6 +309,8 @@ filter(tags_grouped, tag_id %in% pop_ids)
 ```{r}
 popular_genres <- filter(book_tags, tag_id %in% pop_ids) %>% inner_join(books, by=c('goodreads_book_id' = 'goodreads_book_id'))
 popular_genres <- inner_join(popular_genres, tags)
+
+# Even rating and rating count weight
 popular_genres <- mutate(popular_genres, score=(c(scale(average_rating)) +
                                                     c(scale(work_ratings_count))))
 head(popular_genres)
@@ -335,17 +337,48 @@ grid.arrange(p1, p2, p3, nrow=3)
 * Ratings have more positive outliers (no negative ones)
 * Textual reviews have an even number of positive/negative outliers
 
-```{r, fig.width=13}
+```{r}
+draw_graphs <- function(data, title){
+    P <- list()
+    for(tag in unique(data$tag_name)){
+        p <- ggplot(filter(data, tag_name==tag) , aes(x=reorder(title, -score), y=score)) +
+            geom_bar(stat = "identity", aes(fill=title)) + labs(x="", y="Score", title=paste("Top", tag)) +
+            theme(axis.text.x = element_text(size=8, angle = 40, hjust=1)) +
+            guides(fill=FALSE) + theme(plot.margin = unit(c(0.3,0.1,0,3,0.1), "cm"))
+        P <- c(P, list(p))
+    }
+    
+    Plots <- list(plots=P, num=length(P))
+    do.call(grid.arrange, c(Plots$plots, ncol=5, nrow=(Plots$num) %/% 5 + 1, top=title))
+}
+```
 
-# TODO Book must have a category score which will indicate how close the book is to the
-# category. E.g. Harry potter can't have a high score in the history genre.
-
+Here are the plots of top 15 books in each genre.
+```{r, fig.width=40, fig.height=40}
 top_popular_genres <- filter(popular_genres, c(scale(count)) > -1) %>%
     group_by(tag_name) %>% top_n(n=15, wt=score)
 
-ggplot(top_popular_genres , aes(x=reorder(title, -score), y=score, fill=tag_name)) +
-    geom_bar(stat = "identity") + labs(x="Title", y="Score") +
-    theme(axis.text.x = element_text(size=0)) 
+draw_graphs(top_popular_genres, "Top 15 books by the genre")
+```
+
+#### Book scores with regards to their "popularity bucket"
+
+As we calcuate the score using the average rating and number of ratings, it would be
+interesting to see top books if split them by their number of ratings which I will
+call popularity from now on.
+
+```{r}
+# Bucket 1 has the most popular, 7 the least popular books
+popular_genres$popularity <- ntile(desc(popular_genres$work_ratings_count), 7)
+```
+
+```{r, fig.width=35, fig.height=40}
+for(i in 2:7){
+    bucket <- filter(popular_genres, popularity==i)
+    bucket_top <- filter(bucket, c(scale(count)) > -1) %>%
+        group_by(tag_name) %>% top_n(n=15, wt=score)
+    draw_graphs(bucket_top, title=paste("Top 15 books by the genre in the popularity bucket", i))
+}
 ```
 
 
