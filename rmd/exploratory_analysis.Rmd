@@ -3,8 +3,10 @@ title: "Exploratory Analysis"
 author: "Bartol Freškura"
 date: "February 10, 2018"
 output:
-    html_document:
-        toc: true
+  html_document:
+    toc: yes
+  pdf_document:
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -37,6 +39,7 @@ glimpse(book_tags)
 boxplot(book_tags$count)
 summary(book_tags$count)
 ```
+
 The minimum number of counts is -1 which doesn't seem right. Looking at the boxplot we can see that
 the distribution is uneven with a lot of high count outliers. 
 
@@ -45,6 +48,7 @@ sum(book_tags$count <= 0)
 # Remove counts <= 0
 book_tags <- filter(book_tags, count > 0)
 ```
+
 There are 6 observations in which count variable is <= 0. These observations are useless for the 
 analysis so we remove them.
 
@@ -87,6 +91,7 @@ Let's do a quick analysis of variables which could be interesting
 ggplot(data=books, aes(x=language_code)) + geom_bar() + 
     theme(axis.text.x = element_text(angle=90, hjust=1))
 ```
+
 Most of the books are written in some form of the English language which was expected. Other
 languages are evenly distributed.
 
@@ -99,6 +104,7 @@ p3 <- ggplot(data=filter(books, original_publication_year >= 1990), aes(x=origin
 
 grid.arrange(p1, p2, p3, ncol=2, nrow=2)
 ```
+
 Publication year distribution is heavily skewed towards modern era as it can be seen on the
 graphs above. Number of books starts to rise exponentially around 1900 and peaks around
 year 2000. Zooming in further, the peak is seen at the year 2011.
@@ -111,6 +117,7 @@ normal <- rnorm(nrow(books), mean=mean(books$average_rating),
 
 g + geom_density(aes(x=normal), color="red")
 ```
+
 Average ratings (blue) form a distribution very close to a normal one (red) with an unusual
 "dent" around the 4.0 rating. 
 
@@ -123,6 +130,7 @@ p5 <- ggplot(data=filter(books,ratings_5 < 20000), aes(x=ratings_5)) + geom_hist
 
 grid.arrange(p1, p2, p3,p4, p5, ncol=2, nrow=3)
 ```
+
 Ratings 4 and 5 have a quite similar distribution with most books having around 5000 ratings.
 As we go to the lower ratings, a pattern emerges in which the number of ratings drops but the 
 count increases. 
@@ -139,6 +147,7 @@ g
 median(books$work_ratings_count)
 median(books$work_text_reviews_count)
 ```
+
 One last thing to show is the ratio between the number of text reviews and ratings. We expect
 the number of ratings to be higher than the number of text reviews but it is interesting to
 see the ratio visually. Text reviews are packed in tight interval when compared to ratings.
@@ -160,6 +169,7 @@ str(ratings)
 ```{r}
 ggplot(data=ratings, aes(rating)) + geom_bar(aes(fill=rating))
 ```
+
 Another graph which confirmes the skew and the average rating from the former observations.
 The cause for the skew is more obvious here due to the significantly smaller number of 1 and 2 ratings seen
 on the graph.
@@ -208,6 +218,7 @@ ggplot(top_10_avg_rating, aes(x=reorder(title, -average_rating), y=average_ratin
     geom_bar(stat = "identity") + labs(x="Title", y="Average rating") +
     theme(axis.text.x = element_text(size=0)) + ylim(0, 5)
 ```
+
 It is more interesting to see which book come up top if we take a score which takes both
 the number of ratings and the 
 
@@ -280,6 +291,7 @@ ggplot(head(tags_grouped, n=50), aes(x=reorder(tag_name, -count), y=count)) +
     theme(axis.text.x = element_text(angle = 90)) + 
     scale_y_log10()
 ```
+
 Grouping tags by the tag count gives us a quite complex result to analyze. *to-read* and
 *currently-reading* are the default categories that Goodreads offer so it was expected to find
 them at the top. I was expecting that the tags popularity will perfectly correspond to book genres but
@@ -331,6 +343,7 @@ p3 <- ggplot(popular_genres, aes(x=tag_name, y=work_text_reviews_count)) +
     
 grid.arrange(p1, p2, p3, nrow=3)
 ```
+
 * Ratings have more negative outliers
 * manga and graphic novels higher scores but less ratings
 * Ratings have more positive outliers (no negative ones)
@@ -442,3 +455,44 @@ for(i in 2:n){
 ```
 
 
+## Exploring relationships among variables
+
+### Average rating - number of ratings relation
+
+```{r}
+ggplot(data=books, aes(x=average_rating, y=work_ratings_count)) + geom_point(alpha=0.2) +
+    geom_smooth(method="lm", se=F)
+```
+
+The relationship doesn't contain any useful information at the first glance but we see that
+the most of data is clustered within books with lower number of ratings.
+
+```{r}
+lower_no_ratings <- filter(books, work_ratings_count < 20000 & average_rating > 3.1)
+
+ggplot(data=lower_no_ratings, aes(x=average_rating, y=work_ratings_count)) +
+    geom_point(alpha=0.2) + geom_smooth(method="lm", se=F)
+```
+
+Zooming in the cluster didn't yield anything interesting. There is a slight linear trend
+but it is too weak to be investiged any further.
+
+
+
+### Average rating - number of text reviews relation
+
+```{r}
+ggplot(data=books, aes(x=average_rating, y=work_text_reviews_count)) + geom_point(alpha=0.2) +
+    geom_smooth(method="lm", se=F)
+
+lower_no_ratings <- filter(books, work_text_reviews_count < 4000 & average_rating > 3.3)
+
+ggplot(data=lower_no_ratings, aes(x=average_rating, y=work_text_reviews_count)) +
+    geom_point(alpha=0.15) + geom_smooth(method="lm", se=F)
+```
+
+Without filtering there is again an absence of a relationship, but focusing on the 
+reviews with lower counts and with an average rating greater than 3.3, a slight negative linear
+trend can be observed. With an increase in the average rating, the number of text reviews falls down.
+This can mean that people are less critical when giving higher ratings and are more likely to
+give a text review when giving a lower rating.
