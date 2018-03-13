@@ -271,7 +271,6 @@ tags_grouped <- inner_join(book_tags, tags, by=c('tag_id'='tag_id')) %>% group_b
     summarise(count=sum(count)) %>% arrange(desc(count))
 
 head(tags_grouped, n = 200)
-
 ```
 
 
@@ -308,7 +307,7 @@ filter(tags_grouped, tag_id %in% pop_ids)
 
 ```{r}
 popular_genres <- filter(book_tags, tag_id %in% pop_ids) %>% inner_join(books, by=c('goodreads_book_id' = 'goodreads_book_id'))
-popular_genres <- inner_join(popular_genres, tags)
+popular_genres <- inner_join(popular_genres, tags, by="tag_id")
 
 # Even rating and rating count weight
 popular_genres <- mutate(popular_genres, score=(c(scale(average_rating)) +
@@ -369,11 +368,12 @@ call popularity from now on.
 
 ```{r}
 # Bucket 1 has the most popular, 7 the least popular books
-popular_genres$popularity <- ntile(desc(popular_genres$work_ratings_count), 7)
+n <- 7
+popular_genres$popularity <- ntile(desc(popular_genres$work_ratings_count), n)
 ```
 
 ```{r, fig.width=35, fig.height=40}
-for(i in 2:7){
+for(i in 2:n){
     bucket <- filter(popular_genres, popularity==i)
     bucket_top <- filter(bucket, c(scale(count)) > -1) %>%
         group_by(tag_name) %>% top_n(n=15, wt=score)
@@ -381,6 +381,64 @@ for(i in 2:7){
 }
 ```
 
-
+ 
 ### Other tags analysis
+```{r}
+# Pick interesting IDs
+pop_ids <- c(11557, 5207, 17213, 4949, 3389, 24960, 26735, 1416)
+
+filter(tags_grouped, tag_id %in% pop_ids)
+```
+```{r}
+popular_other <- filter(book_tags, tag_id %in% pop_ids) %>% inner_join(books, by=c('goodreads_book_id' = 'goodreads_book_id'))
+popular_other <- inner_join(popular_other, tags, by="tag_id")
+
+# Even rating and rating count weight
+popular_other <- mutate(popular_other, score=(c(scale(average_rating)) +
+                                                    c(scale(work_ratings_count))))
+head(popular_other)
+```
+
+```{r, fig.width=10, fig.height=15}
+p1 <- ggplot(popular_other, aes(x=tag_name, y=average_rating)) +
+    geom_boxplot(outlier.alpha = 0.3) + labs(x="Genre", y="Average rating") + 
+    theme(axis.text.x = element_text(angle = 45))
+
+p2 <- ggplot(popular_other, aes(x=tag_name, y=work_ratings_count)) +
+    geom_boxplot(outlier.alpha = 0.3) + labs(x="Genre", y="Number of ratings (log10)") + 
+    theme(axis.text.x = element_text(angle = 45)) +
+    scale_y_log10()
+
+p3 <- ggplot(popular_other, aes(x=tag_name, y=work_text_reviews_count)) +
+    geom_boxplot(outlier.alpha = 0.3) + labs(x="Genre", y="Number of text ratings (log10)") + 
+    theme(axis.text.x = element_text(angle = 45))  + scale_y_log10()
+    
+grid.arrange(p1, p2, p3, nrow=3)
+```
+
+
+```{r, fig.width=25, fig.height=13}
+top_popular_other <- filter(popular_other, c(scale(count)) > -1) %>%
+    group_by(tag_name) %>% top_n(n=15, wt=score)
+
+draw_graphs(top_popular_other, "Top 15 books by the other tags")
+```
+
+#### Book scores with regards to their "popularity bucket"
+
+```{r}
+n <- 7
+# Bucket 1 has the most popular, 7 the least popular books
+popular_other$popularity <- ntile(desc(popular_other$work_ratings_count), n)
+```
+
+```{r, fig.width=25, fig.height=13}
+for(i in 2:n){
+    bucket <- filter(popular_other, popularity==i)
+    bucket_top <- filter(bucket, c(scale(count)) > -1) %>%
+        group_by(tag_name) %>% top_n(n=15, wt=score)
+    draw_graphs(bucket_top, title=paste("Top 15 books by the other tags in the popularity bucket", i))
+}
+```
+
 
