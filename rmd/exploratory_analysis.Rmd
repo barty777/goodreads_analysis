@@ -503,7 +503,7 @@ give a text review when giving a lower rating.
 ## Titles wordcloud
 
 ```{r, fig.width=7, fig.height=7}
-titles <- filter(books, !is.na(original_title)) %>% unique()
+titles <- filter(books, !is.na(original_title))$original_title %>% unique()
 
 title_corpus <- VCorpus(VectorSource(titles))
 title_corpus <- tm_map(title_corpus, content_transformer(tolower))
