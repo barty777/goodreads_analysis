@@ -19,6 +19,9 @@ knitr::opts_knit$set(root.dir = '../')
 library(tidyverse)
 library(magrittr)
 library(gridExtra)  
+library(wordcloud)
+library(SnowballC)
+library(tm)
 source('./scripts/data_preparation.R')
 ```
 
@@ -496,3 +499,33 @@ reviews with lower counts and with an average rating greater than 3.3, a slight 
 trend can be observed. With an increase in the average rating, the number of text reviews falls down.
 This can mean that people are less critical when giving higher ratings and are more likely to
 give a text review when giving a lower rating.
+
+## Titles wordcloud
+
+```{r, fig.width=7, fig.height=7}
+titles <- filter(books, !is.na(original_title)) %>% unique()
+
+title_corpus <- VCorpus(VectorSource(titles))
+title_corpus <- tm_map(title_corpus, content_transformer(tolower))
+title_corpus <- tm_map(title_corpus, PlainTextDocument)
+title_corpus <- tm_map(title_corpus, removeNumbers)
+
+title_corpus <- tm_map(title_corpus, removePunctuation)
+title_corpus <- tm_map(title_corpus, removeWords, stopwords('english'))
+title_corpus <- tm_map(title_corpus, removeWords, c("the", "eng", "httpsimagesgrassetscombooksmjpg",
+                                                    "httpsimagesgrassetscombookssjpg",
+                                                    "httpssgrassetscomassetsnophotobookxabfaaababefcapng",
+                                                    "httpssgrassetscomassetsnophotobookxbccacacdeffapng",
+                                                    "enus",
+                                                    "engb")) 
+
+dtm <- TermDocumentMatrix(title_corpus)
+m <- as.matrix(dtm)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+
+wordcloud(words=d$word, freq=d$freq,
+          max.words = 70, min.freq = 3, random.order = FALSE, colors=brewer.pal(8, "Dark2"))
+```
+
+
