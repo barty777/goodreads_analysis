@@ -8,7 +8,7 @@ This repository contains an exploratory analysis of the *goodreads-10k* dataset 
 
 ## Generating the report
                                                                                                               
-Analysis source code can be found in the *project_root/rmd/exploratory_analysis.Rmd*. To use the goodreads-10 dataset, the [repository([https://github.com/zygmuntz/goodbooks-10k) must be cloned in the *project_root/data* directory. Create the *data* folder if it doesn't exist.  
+Analysis source code can be found in the *project_root/rmd/exploratory_analysis.Rmd*. To use the goodreads-10 dataset, the [repository](https://github.com/zygmuntz/goodbooks-10k) must be cloned in the *project_root/data* directory. Create the *data* folder if it doesn't exist.  
 
 You will probably need to install a few R libraries before running the code. It is worth mentioning that the execution can be CPU heavy because of the large plots that are generated.                                                                                                                             
 
