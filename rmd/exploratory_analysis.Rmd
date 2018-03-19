@@ -275,7 +275,7 @@ grid.arrange(p1, p2, p3, ncol=1, nrow=3)
 ```
 
 Three graphs above show us different rankings when we apply a simple model which takes
-standardised average ratings and rating counts to calculate the book score. Alpha parameter
+standardised average ratings and rating counts to calculate the *score* variable. Alpha parameter
 represents the weight given to the average rating variable.
 
 ## Tags analysis
